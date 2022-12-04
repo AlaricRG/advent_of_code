@@ -4,19 +4,22 @@ fn main() {
     let elv_list = file_content_to_elvs_vec(file_content);
     let elv_carrying_most_calories = find_elv_carrying_most_calories(&elv_list);
     println!(
-        "\x1b[35m ==> The elv carrying higher amount of calories is carrying {} calories !",
+        "\x1b[35m ==> The elv carrying the higher amount of calories is carrying {} calories !",
         { elv_carrying_most_calories.get_total_of_calories() }
+    );
+    let three_elvs_carrying_most_calories = find_three_elvs_carrying_most_calories(&elv_list);
+    let mut three_elvs_carrying_most_calories_total = 0;
+    three_elvs_carrying_most_calories.map(|elv| {
+        println!("{:#?}", elv.get_total_of_calories());
+        three_elvs_carrying_most_calories_total += elv.get_total_of_calories()
+    });
+    println!(
+        "\x1b[35m ==> The 3 elvs carrying the higher amount of calories are carrying a total of {} calories !",
+        {three_elvs_carrying_most_calories_total}
     );
 }
 
-fn read_file_content(file_path: &str) -> String {
-    match std::fs::read_to_string(file_path) {
-        Err(e) => panic!("Error reading file {:?}: \n {:?}", file_path, e),
-        Ok(file_content) => file_content,
-    }
-}
-
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 struct Elv {
     carried_calories: Vec<i32>,
 }
@@ -39,6 +42,13 @@ impl FromIterator<i32> for Elv {
     }
 }
 
+fn read_file_content(file_path: &str) -> String {
+    match std::fs::read_to_string(file_path) {
+        Err(e) => panic!("Error reading file {:?}: \n {:?}", file_path, e),
+        Ok(file_content) => file_content,
+    }
+}
+
 fn file_content_to_elvs_vec(file_content: String) -> Vec<Elv> {
     let res = file_content.split("\n\n").map(|split| {
         split
@@ -55,6 +65,34 @@ fn find_elv_carrying_most_calories(elvs: &Vec<Elv>) -> &Elv {
     elvs.iter()
         .max_by_key(|elv| elv.get_total_of_calories())
         .unwrap()
+}
+
+fn find_three_elvs_carrying_most_calories(elvs: &Vec<Elv>) -> [Elv; 3] {
+    let mut three_elvs = [
+        Elv {
+            carried_calories: vec![0],
+        },
+        Elv {
+            carried_calories: vec![0],
+        },
+        Elv {
+            carried_calories: vec![0],
+        },
+    ];
+    elvs.iter().for_each(|elv| {
+        if elv.get_total_of_calories() > three_elvs[0].get_total_of_calories() {
+            three_elvs[2] = three_elvs[1].clone();
+            three_elvs[1] = three_elvs[0].clone();
+            three_elvs[0] = elv.clone();
+        } else if elv.get_total_of_calories() > three_elvs[1].get_total_of_calories() {
+            three_elvs[2] = three_elvs[1].clone();
+            three_elvs[1] = elv.clone();
+        } else if elv.get_total_of_calories() > three_elvs[2].get_total_of_calories() {
+            three_elvs[2] = elv.clone();
+        }
+        println!("{:#?}", three_elvs);
+    });
+    three_elvs
 }
 
 #[cfg(test)]
@@ -151,6 +189,40 @@ mod tests {
         assert_eq!(
             &elv_carrying_most_calories,
             found_elv_carrying_most_calories
+        );
+    }
+
+    #[test]
+    fn should_return_three_elvs_carrying_most_calories() {
+        // GIVEN
+        let elv_1: Elv = Elv {
+            carried_calories: vec![600, 1000],
+        };
+        let elv_2: Elv = Elv {
+            carried_calories: vec![500, 1000],
+        };
+        let elv_3: Elv = Elv {
+            carried_calories: vec![400, 1000],
+        };
+        let elvs = vec![
+            elv_3.clone(),
+            Elv {
+                carried_calories: vec![300, 200],
+            },
+            elv_2.clone(),
+            Elv {
+                carried_calories: vec![200, 200],
+            },
+            elv_1.clone(),
+        ];
+
+        // WHEN
+        let found_three_elvs_carrying_most_calories = find_three_elvs_carrying_most_calories(&elvs);
+
+        // THEN
+        assert_eq!(
+            [elv_1, elv_2, elv_3],
+            found_three_elvs_carrying_most_calories
         );
     }
 }
